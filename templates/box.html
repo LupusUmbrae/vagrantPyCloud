@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>{{ boxName }}</h2>
+  <p>{{ description }}</p>
+  <ul>
+    {% for version in versions %}
+        <li><a href="{{ version.version }}">{{ version.version }}</a></li>
+    {% endfor %}
+  </ul>
+  <p>
+    <form action="{{ url_for('addVersion') }}" method=post>
+      <input type="hidden" name="box" value="{{ boxName }}">
+      <input type="submit" value="Add Version">
+    </form>
+  </p>
+{% endblock %}

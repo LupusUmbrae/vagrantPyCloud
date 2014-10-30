@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>Boxes</h2>
+  <ul>
+    {% for box in boxes %}
+        <li><a href="{{ box }}">{{ box }}</a></li>
+    {% endfor %}
+  </ul>
+{% endblock %}
