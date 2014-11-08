@@ -75,12 +75,14 @@ def craeteBox():
   return render_template('new_box.html')
 
 @app.route('/upload/uploaded/', methods=['POST'])
-def upload():
-      print "Upload"
-      title = ""
-      message = "Hi?"
+def processUpload():
+        print "Upload"
+        title = ""
+        message = "Hi?"
       
-      if request.form['upload'] == "box":
+        if request.form['upload'] == "box":
+            print "Box"
+        elif request.form['upload'] == "version":
             title = "upload box"
             
             file = request.files['boxFile']
@@ -89,7 +91,6 @@ def upload():
             box = request.form['box']
             provider = request.form['provider']
             metadata = json.loads(getBoxMetadataFile(box).read())
-            
             
             if versionLegal(version, metadata, provider):
             
@@ -107,27 +108,49 @@ def upload():
                         addOrUpdateVersion(metadata, newVersion)
                         print metadata
                         saveBoxMetadata(box, metadata)
+                        message = "Sucessfully uploaded version :" + version + " to box: " + box + " for provider: " + provider
                   else:
                     message = "Illegal file"
             else:
+                print "version illegal"
                 message = "Version/Provider already in exists"
+        
+        elif request.form['upload'] == "provider":
+            print "provider"
             
-            message = "Sucessfully uploaded version :" + version + " to box: " + box + " for provider: " + provider
-                    
-      elif request.form['upload'] == "create":
-            print "create box"
-            
-      return render_template('uploaded.html', title=title, message=message)
+        return render_template('uploaded.html', title=title, message=message)
 
 @app.route('/upload/version', methods=['POST'])
 def addVersion():
     print app.config['SERVER_NAME']
     box = request.form['box']
-    return render_template('add_version.html', boxName=box)
+    return render_template('upload.html', uploadType="version", boxName=box)
 
 @app.route('/upload/provider', methods=['POST'])
 def addProvider():
-    return render_template('new_provider.html')
+    print app.config['SERVER_NAME']
+    box = request.form['box']
+    version = request.form['version']
+    return render_template('upload.html', uploadType="provider", boxName=box, version=version)
+
+@app.route('/upload/box', methods=['POST'])
+@app.route('/upload')
+def addBox():
+    print app.config['SERVER_NAME']
+    return render_template('upload.html', uploadType="box")
+
+#
+# Process Upload Methods
+#
+
+def processCreateBox():
+    print "process create box"
+
+def processCreateVersion():
+    print "process create version"
+
+def processCreateProvider():
+    print "Process create provider"
 
 
 #
@@ -136,7 +159,7 @@ def addProvider():
 
 def getBoxMetadataFile(box, mode='r'):
     boxHome = os.path.join(app.config['BOX_ROOT'], box)
-    if os.path.isdir(boxHome):
+    if os.path.isdir(boxHome):        
         metadataFile = os.path.join(boxHome, 'metadata.json')
         f = open(metadataFile, mode)
         return f
@@ -176,11 +199,7 @@ def processFile(filepath, filename, provider, box, version):
     
         sha1.update(f.read())
 
-        
-
         url = "http://" +app.config['SERVER_NAME'] + "/boxes/"  + box + "/" + version + "/" +  filename
-
-        print url
 
         providerDetails = {}
         providerDetails["name"] = provider

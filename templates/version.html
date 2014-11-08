@@ -1,8 +1,17 @@
 {% extends "layout.html" %}
 {% block body %}
-  <h2>{{ boxName }} - {{ version }}</h2>
-  <p>{{ description }}</p>
-  {% for provider in providers %}
+    <h2>{{ boxName }} - {{ version }}</h2>
+    <p>{{ description }}</p>
+    <ul>
+    {% for provider in providers %}
         <li>{{ provider.name }}</li>
-  {% endfor %}
+    {% endfor %}
+    </ul>
+    <p>
+        <form action="{{ url_for('addProvider') }}" method=post>
+            <input type="hidden" name="box" value="{{ boxName }}">
+            <input type="hidden" name="version" value="{{ version }}">
+            <input type="submit" value="Add Provider">
+        </form>
+    </p>
 {% endblock %}

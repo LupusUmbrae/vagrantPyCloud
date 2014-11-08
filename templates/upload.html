@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block body %}
+  <h2>Add Version to {{ boxName }}</h2>
+  <br />
+  <form action="{{ url_for('processUpload') }}" method=post enctype=multipart/form-data>
+    <dt> Select the box file
+    <dd> <input type="file" name="boxFile">
+    <dt> Box
+    <dd> <input type="text" name="box" {% if boxName %} value="{{boxName}}" disabled {% endif %}>
+    <dt> Version
+    <dd> <input type="text" name="version"  {% if version %} value="{{version}}" disabled {% endif %}>
+    <dt> Provider
+    <dd> <input type="text" name="provider">
+    <dd> <input type="submit" value="Upload" />
+    
+    <input type="hidden" name="upload" value="{{ uploadType }}" />
+  </form>
+{% endblock %}
