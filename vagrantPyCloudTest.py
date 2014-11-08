@@ -5,6 +5,10 @@ class VagrantPyCloudTest(unittest.TestCase):
     def testLegalVersion(self):
         metadata = loadMetadata()
         self.assertEqual(vagrantPyCloud.versionLegal(1, metadata, "provider"), True)
+
+    def testLegalProvider(self):
+        metadata = loadMetadata()
+        self.assertEqual(vagrantPyCloud.versionLegal(0, metadata, "provider", True), True)
     
     def testIllegalVersion(self):
 		metadata = loadMetadata()

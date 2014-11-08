@@ -140,7 +140,8 @@ def processCreateBox(file, filename, version, box, provider, description):
         message = "Box already exists"
     else:
         boxVersion = os.path.join(boxHome, version)
-        os.makedirs(boxVersion)
+        boxProvider = os.path.join(boxVersion, provider)
+        os.makedirs(boxProvider)
 
         metadata = {}
         metadata["name"] = box
@@ -168,16 +169,14 @@ def processCreateVersion(file, filename, version, box, provider):
 
         boxHome = os.path.join(app.config['BOX_ROOT'], box)
         boxVersion = os.path.join(boxHome, version)
+        boxProvider = os.path.join(boxVersion, provider)
                         
-        os.makedirs(boxVersion)
-        print boxVersion
+        os.makedirs(boxProvider)
                        
         filePath = os.path.join(boxVersion, filename)
         file.save(filePath)
         newVersion = processFile(filePath, filename, provider, box, version)
-        print newVersion
         addOrUpdateVersion(metadata, newVersion)
-        print metadata
         saveBoxMetadata(box, metadata)
         message = "Sucessfully uploaded version :" + version + " to box: " + box + " for provider: " + provider
     else:
@@ -186,6 +185,26 @@ def processCreateVersion(file, filename, version, box, provider):
 
 def processCreateProvider(file, filename, version, box, provider):
     print "Process create provider"
+    message = ""
+    metadata = json.loads(getBoxMetadataFile(box).read())
+            
+    if versionLegal(version, metadata, provider, True):
+
+        boxHome = os.path.join(app.config['BOX_ROOT'], box)
+        boxVersion = os.path.join(boxHome, version)
+        boxProvider = os.path.join(boxVersion, provider)
+                        
+        os.makedirs(boxProvider)
+                       
+        filePath = os.path.join(boxVersion, filename)
+        file.save(filePath)
+        newVersion = processFile(filePath, filename, provider, box, version)
+        addOrUpdateVersion(metadata, newVersion)
+        saveBoxMetadata(box, metadata)
+        message = "Sucessfully uploaded provider :" + provider
+    else:
+        message = "Provider already exists, or version does not"
+    return message
 
 
 #
@@ -234,7 +253,7 @@ def processFile(filepath, filename, provider, box, version):
     
         sha1.update(f.read())
 
-        url = "http://" +app.config['SERVER_NAME'] + "/boxes/"  + box + "/" + version + "/" +  filename
+        url = "http://" +app.config['SERVER_NAME'] + "/boxes/"  + box + "/" + version + "/" + provider + "/" +  filename
 
         providerDetails = {}
         providerDetails["name"] = provider
