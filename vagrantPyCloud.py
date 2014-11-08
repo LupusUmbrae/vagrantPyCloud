@@ -78,78 +78,113 @@ def craeteBox():
 def processUpload():
         print "Upload"
         title = ""
-        message = "Hi?"
       
-        if request.form['upload'] == "box":
-            print "Box"
-        elif request.form['upload'] == "version":
-            title = "upload box"
-            
-            file = request.files['boxFile']
-            filename = secure_filename(file.filename)
-            version = request.form['version']
-            box = request.form['box']
-            provider = request.form['provider']
-            metadata = json.loads(getBoxMetadataFile(box).read())
-            
-            if versionLegal(version, metadata, provider):
-            
-                  boxHome = os.path.join(app.config['BOX_ROOT'], box)
-                  boxVersion = os.path.join(boxHome, version)
-                                    
-                  os.makedirs(boxVersion)
-                  print boxVersion
-                  
-                  if file and allowed_file(filename):                  
-                        filePath = os.path.join(boxVersion, filename)
-                        file.save(filePath)
-                        newVersion = processFile(filePath, filename, provider, box, version)
-                        print newVersion
-                        addOrUpdateVersion(metadata, newVersion)
-                        print metadata
-                        saveBoxMetadata(box, metadata)
-                        message = "Sucessfully uploaded version :" + version + " to box: " + box + " for provider: " + provider
-                  else:
-                    message = "Illegal file"
-            else:
-                print "version illegal"
-                message = "Version/Provider already in exists"
-        
-        elif request.form['upload'] == "provider":
-            print "provider"
-            
+        file = request.files['boxFile']
+        filename = secure_filename(file.filename)
+        version = request.form['version']
+        box = request.form['box']
+        provider = request.form['provider']
+
+        message = ""
+
+        if file and allowed_file(filename):
+            if request.form['upload'] == "box":
+                print "Box"
+                title = "Upload Box"
+                description = request.form['description']
+                processCreateBox(file, filename, version, box, provider, description)
+            elif request.form['upload'] == "version":
+                print "version"
+                title = "Upload Version"
+                message = processCreateVersion(file, filename, version, box, provider)
+            elif request.form['upload'] == "provider":
+                print "provider"
+                title = "Upload Provider"
+        else:  
+            message = "File not found, or not a *.box file"        
+    
         return render_template('uploaded.html', title=title, message=message)
 
 @app.route('/upload/version', methods=['POST'])
 def addVersion():
-    print app.config['SERVER_NAME']
+    print "add version"
     box = request.form['box']
     return render_template('upload.html', uploadType="version", boxName=box)
 
 @app.route('/upload/provider', methods=['POST'])
 def addProvider():
-    print app.config['SERVER_NAME']
+    print "add providers"
     box = request.form['box']
     version = request.form['version']
     return render_template('upload.html', uploadType="provider", boxName=box, version=version)
 
 @app.route('/upload/box', methods=['POST'])
-@app.route('/upload')
 def addBox():
-    print app.config['SERVER_NAME']
-    return render_template('upload.html', uploadType="box")
+    print "add box"
+    return render_template('upload.html', uploadType="box", version=0, description=True)
+
+@app.route('/upload/')
+def generalUpload():
+    print "general upload"
+    return render_template('upload.html', uploadType="box", version=0, description=True)
 
 #
 # Process Upload Methods
 #
 
-def processCreateBox():
+def processCreateBox(file, filename, version, box, provider, description):
     print "process create box"
+    message = ""
+    boxHome = os.path.join(app.config['BOX_ROOT'], box)
+    if os.path.isdir(boxHome):
+        message = "Box already exists"
+    else:
+        boxVersion = os.path.join(boxHome, version)
+        os.makedirs(boxVersion)
 
-def processCreateVersion():
+        metadata = {}
+        metadata["name"] = box
+        metadata["description"] = description
+        versions = []
+
+        filePath = os.path.join(boxVersion, filename)
+        file.save(filePath)
+        newVersion = processFile(filePath, filename, provider, box, version)
+
+        versions.insert(0, newVersion)
+        metadata["versions"] = versions
+
+        saveBoxMetadata(box, metadata)
+    
+    return message
+
+
+def processCreateVersion(file, filename, version, box, provider):
     print "process create version"
+    message = ""
+    metadata = json.loads(getBoxMetadataFile(box).read())
+            
+    if versionLegal(version, metadata, provider):
 
-def processCreateProvider():
+        boxHome = os.path.join(app.config['BOX_ROOT'], box)
+        boxVersion = os.path.join(boxHome, version)
+                        
+        os.makedirs(boxVersion)
+        print boxVersion
+                       
+        filePath = os.path.join(boxVersion, filename)
+        file.save(filePath)
+        newVersion = processFile(filePath, filename, provider, box, version)
+        print newVersion
+        addOrUpdateVersion(metadata, newVersion)
+        print metadata
+        saveBoxMetadata(box, metadata)
+        message = "Sucessfully uploaded version :" + version + " to box: " + box + " for provider: " + provider
+    else:
+        message = "Version/Provider already in exists"
+    return message
+
+def processCreateProvider(file, filename, version, box, provider):
     print "Process create provider"
 
 
@@ -182,14 +217,14 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1] == BOX_EXTENSION
           
 
-def versionLegal(version, metadata, provider):
+def versionLegal(version, metadata, provider, requireVersion=False):
     for curVersion in metadata["versions"]:
         if curVersion["version"] == version:
             for curProvider in curVersion['providers']:
                 if curProvider == provider:
                     return False
-            return False
-    return True
+            return requireVersion
+    return not requireVersion
 
 def processFile(filepath, filename, provider, box, version):
     print "process file"
@@ -220,7 +255,6 @@ def addOrUpdateVersion(metadata, versionJson):
             curVersion["providers"].extend(versionJson["providers"])
             return
     metadata["versions"].append(versionJson)
-
 
 if __name__ == "__main__":
   app.run()
