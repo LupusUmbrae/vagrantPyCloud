@@ -4,7 +4,6 @@ from flask import Flask, request, session, g, redirect, url_for, abort, render_t
 from werkzeug import secure_filename
 import hashlib
 
-
 DEBUG = True
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
@@ -13,6 +12,8 @@ BOX_ROOT = os.path.join(APP_ROOT, 'boxes')
 SERVER_NAME = "localhost:5000"
 
 BOX_EXTENSION = "box";
+
+HOST_VAR = "${hostname}"
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -37,6 +38,7 @@ def box(path):
     return render_template('box.html', boxName="Unknown box: " + path, description="This is not the box you are looking for", versions=[])
   elif request.headers.get('User-Agent').startswith("Vagrant"):
     metadata = f.read()
+    metadata = metadata.replace(app.config['HOST_VAR'], app.config['SERVER_NAME'])
     return Response(metadata,  mimetype='application/json')
       
   else:
@@ -57,14 +59,17 @@ def boxVersion(path, versionNumber):
   return render_template('version.html', boxName=metadata['name'], description=metadata['description'], version=versionNumber, providers=version['providers'])
   
   
-@app.route('/boxes/<path>/<version>/<file>/')
-def downloadBox(path, version, file):
+@app.route('/boxes/<path>/<version>/<provider>/<file>/')
+def downloadBox(path, version, file, provider):
   boxHome = os.path.join(app.config['BOX_ROOT'], path)
   boxVersion = os.path.join(boxHome, version)
+  boxProvider = os.path.join(boxVersion, provider)
+  print boxProvider
+  print file
   if request.headers.get('User-Agent').startswith("Vagrant"):
-    return send_from_directory(directory=boxVersion, filename=file)
+    return send_from_directory(directory=boxProvider, filename=file)
   else:
-    return send_from_directory(directory=boxVersion, filename=file)
+    return send_from_directory(directory=boxProvider, filename=file)
 
 #
 # Upload boxes
@@ -121,12 +126,12 @@ def addProvider():
 @app.route('/upload/box', methods=['POST'])
 def addBox():
     print "add box"
-    return render_template('upload.html', uploadType="box", version=0, description=True)
+    return render_template('upload.html', uploadType="box", version="0", description=True)
 
 @app.route('/upload/')
 def generalUpload():
     print "general upload"
-    return render_template('upload.html', uploadType="box", version=0, description=True)
+    return render_template('upload.html', uploadType="box", version="0", description=True)
 
 #
 # Process Upload Methods
@@ -139,18 +144,13 @@ def processCreateBox(file, filename, version, box, provider, description):
     if os.path.isdir(boxHome):
         message = "Box already exists"
     else:
-        boxVersion = os.path.join(boxHome, version)
-        boxProvider = os.path.join(boxVersion, provider)
-        os.makedirs(boxProvider)
+        
+        newVersion = saveBox(file, filename, provider, box, version)
 
         metadata = {}
         metadata["name"] = box
         metadata["description"] = description
         versions = []
-
-        filePath = os.path.join(boxVersion, filename)
-        file.save(filePath)
-        newVersion = processFile(filePath, filename, provider, box, version)
 
         versions.insert(0, newVersion)
         metadata["versions"] = versions
@@ -167,15 +167,7 @@ def processCreateVersion(file, filename, version, box, provider):
             
     if versionLegal(version, metadata, provider):
 
-        boxHome = os.path.join(app.config['BOX_ROOT'], box)
-        boxVersion = os.path.join(boxHome, version)
-        boxProvider = os.path.join(boxVersion, provider)
-                        
-        os.makedirs(boxProvider)
-                       
-        filePath = os.path.join(boxVersion, filename)
-        file.save(filePath)
-        newVersion = processFile(filePath, filename, provider, box, version)
+        newVersion = saveBox(file, filename, provider, box, version)
         addOrUpdateVersion(metadata, newVersion)
         saveBoxMetadata(box, metadata)
         message = "Sucessfully uploaded version :" + version + " to box: " + box + " for provider: " + provider
@@ -190,15 +182,7 @@ def processCreateProvider(file, filename, version, box, provider):
             
     if versionLegal(version, metadata, provider, True):
 
-        boxHome = os.path.join(app.config['BOX_ROOT'], box)
-        boxVersion = os.path.join(boxHome, version)
-        boxProvider = os.path.join(boxVersion, provider)
-                        
-        os.makedirs(boxProvider)
-                       
-        filePath = os.path.join(boxVersion, filename)
-        file.save(filePath)
-        newVersion = processFile(filePath, filename, provider, box, version)
+        newVersion = saveBox(file, filename, provider, box, version)
         addOrUpdateVersion(metadata, newVersion)
         saveBoxMetadata(box, metadata)
         message = "Sucessfully uploaded provider :" + provider
@@ -224,6 +208,16 @@ def saveBoxMetadata(box, metadata):
     f.write(data)
     f.close()
     
+def saveBox(file, filename, provider, box, version):
+    boxHome = os.path.join(app.config['BOX_ROOT'], box)
+    boxVersion = os.path.join(boxHome, version)
+    boxProvider = os.path.join(boxVersion, provider)
+                    
+    os.makedirs(boxProvider)
+                   
+    filePath = os.path.join(boxProvider, filename)
+    file.save(filePath)
+    return processFile(filePath, filename, provider, box, version)
        
 def getBoxes():
     boxes=[]
@@ -253,7 +247,7 @@ def processFile(filepath, filename, provider, box, version):
     
         sha1.update(f.read())
 
-        url = "http://" +app.config['SERVER_NAME'] + "/boxes/"  + box + "/" + version + "/" + provider + "/" +  filename
+        url = "http://" + app.config['HOST_VAR'] + "/boxes/"  + box + "/" + version + "/" + provider + "/" +  filename
 
         providerDetails = {}
         providerDetails["name"] = provider
