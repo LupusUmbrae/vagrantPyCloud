@@ -64,8 +64,6 @@ def downloadBox(path, version, file, provider):
   boxHome = os.path.join(app.config['BOX_ROOT'], path)
   boxVersion = os.path.join(boxHome, version)
   boxProvider = os.path.join(boxVersion, provider)
-  print boxProvider
-  print file
   if request.headers.get('User-Agent').startswith("Vagrant"):
     return send_from_directory(directory=boxProvider, filename=file)
   else:
@@ -81,7 +79,7 @@ def craeteBox():
 
 @app.route('/upload/uploaded/', methods=['POST'])
 def processUpload():
-        print "Upload"
+        app.logger.debug("Upload")
         title = ""
       
         file = request.files['boxFile']
@@ -94,16 +92,16 @@ def processUpload():
 
         if file and allowed_file(filename):
             if request.form['upload'] == "box":
-                print "Box"
+                app.logger.debug("Box")
                 title = "Upload Box"
                 description = request.form['description']
                 processCreateBox(file, filename, version, box, provider, description)
             elif request.form['upload'] == "version":
-                print "version"
+                app.logger.debug("version")
                 title = "Upload Version"
                 message = processCreateVersion(file, filename, version, box, provider)
             elif request.form['upload'] == "provider":
-                print "provider"
+                app.logger.debug("provider")
                 title = "Upload Provider"
         else:  
             message = "File not found, or not a *.box file"        
@@ -112,25 +110,25 @@ def processUpload():
 
 @app.route('/upload/version', methods=['POST'])
 def addVersion():
-    print "add version"
+    app.logger.debug("add version")
     box = request.form['box']
     return render_template('upload.html', uploadType="version", boxName=box)
 
 @app.route('/upload/provider', methods=['POST'])
 def addProvider():
-    print "add providers"
+    app.logger.debug("add providers")
     box = request.form['box']
     version = request.form['version']
     return render_template('upload.html', uploadType="provider", boxName=box, version=version)
 
 @app.route('/upload/box', methods=['POST'])
 def addBox():
-    print "add box"
+    app.logger.debug("add box")
     return render_template('upload.html', uploadType="box", version="0", description=True)
 
 @app.route('/upload/')
 def generalUpload():
-    print "general upload"
+    app.logger.debug("general upload")
     return render_template('upload.html', uploadType="box", version="0", description=True)
 
 #
@@ -138,7 +136,7 @@ def generalUpload():
 #
 
 def processCreateBox(file, filename, version, box, provider, description):
-    print "process create box"
+    app.logger.debug("process create box")
     message = ""
     boxHome = os.path.join(app.config['BOX_ROOT'], box)
     if os.path.isdir(boxHome):
@@ -161,7 +159,7 @@ def processCreateBox(file, filename, version, box, provider, description):
 
 
 def processCreateVersion(file, filename, version, box, provider):
-    print "process create version"
+    app.logger.debug("process create version")
     message = ""
     metadata = json.loads(getBoxMetadataFile(box).read())
             
@@ -176,7 +174,7 @@ def processCreateVersion(file, filename, version, box, provider):
     return message
 
 def processCreateProvider(file, filename, version, box, provider):
-    print "Process create provider"
+    app.logger.debug("Process create provider")
     message = ""
     metadata = json.loads(getBoxMetadataFile(box).read())
             
@@ -240,7 +238,7 @@ def versionLegal(version, metadata, provider, requireVersion=False):
     return not requireVersion
 
 def processFile(filepath, filename, provider, box, version):
-    print "process file"
+    app.logger.debug("process file")
     sha1 = hashlib.sha1()
     f = open(filepath, 'rb')
     try:
