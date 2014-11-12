@@ -26,3 +26,9 @@ migration of the metadata or chaning of a site's domain name
 
 Once you've got the code you need to decide where the files will be stored, by default this is in a folder called `boxes` 
 under the app root. This can be configured by changing the value of the `BOX_ROOT` varaible.
+
+## WSGI deployment
+
+The application may be easily deployed in a WSGI container. Simply point your WSGI server at the `vagrantPyCloud.wsgi`
+file with PYTHON_PATH set up correctly. Or optionally install vagrantPyCloud to a virtualenv first, and configure the
+`.wsgi` file accordingly.
