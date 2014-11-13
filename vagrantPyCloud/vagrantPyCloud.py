@@ -1,8 +1,9 @@
+import hashlib
 import json
 import os
+
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash, Response, send_from_directory
 from werkzeug import secure_filename
-import hashlib
 
 DEBUG = True
 
@@ -11,7 +12,7 @@ BOX_ROOT = os.path.join(APP_ROOT, 'boxes')
 
 SERVER_NAME = "localhost:5000"
 
-BOX_EXTENSION = "box";
+BOX_EXTENSION = "box"
 
 HOST_VAR = "${hostname}"
 

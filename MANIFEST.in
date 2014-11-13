@@ -1,0 +1,2 @@
+recursive-include vagrantPyCloud/templates *
+recursive-include vagrantPyCloud/static *
