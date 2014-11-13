@@ -1,2 +1,6 @@
 /boxes
 /*.pyc
+/build
+/dist
+/MANIFEST
+/*.egg-info

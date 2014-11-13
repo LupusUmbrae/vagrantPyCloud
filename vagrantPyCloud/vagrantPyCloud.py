@@ -219,8 +219,9 @@ def saveBox(file, filename, provider, box, version):
 def getBoxes():
     boxes=[]
     app.logger.debug(os.path.abspath(app.config['BOX_ROOT']))
-    for folder in os.listdir(app.config['BOX_ROOT']):
-        boxes.append(folder)
+    if os.path.isdir(app.config['BOX_ROOT']):
+        for folder in os.listdir(app.config['BOX_ROOT']):
+            boxes.append(folder)
     return boxes
 
 def allowed_file(filename):
