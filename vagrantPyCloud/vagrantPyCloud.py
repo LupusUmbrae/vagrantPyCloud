@@ -7,10 +7,8 @@ from werkzeug import secure_filename
 
 DEBUG = True
 
-APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
-BOX_ROOT = os.path.join(APP_ROOT, 'boxes')
-
-SERVER_NAME = "localhost:5000"
+# Change this to where you want the boxes to be installed
+BOX_ROOT = 'boxes'
 
 BOX_EXTENSION = "box"
 
@@ -28,7 +26,7 @@ def show_entries():
 #
 
 @app.route('/boxes/')
-def listBox():
+def showBoxes():
   boxes=getBoxes()
   return render_template('boxes.html', boxes=boxes)
 
@@ -39,7 +37,7 @@ def box(path):
     return render_template('box.html', boxName="Unknown box: " + path, description="This is not the box you are looking for", versions=[])
   elif request.headers.get('User-Agent').startswith("Vagrant"):
     metadata = f.read()
-    metadata = metadata.replace(app.config['HOST_VAR'], app.config['SERVER_NAME'])
+    metadata = metadata.replace(app.config['HOST_VAR'], request.url_root)
     return Response(metadata,  mimetype='application/json')
       
   else:
@@ -220,6 +218,7 @@ def saveBox(file, filename, provider, box, version):
        
 def getBoxes():
     boxes=[]
+    app.logger.debug(os.path.abspath(app.config['BOX_ROOT']))
     for folder in os.listdir(app.config['BOX_ROOT']):
         boxes.append(folder)
     return boxes
@@ -246,7 +245,7 @@ def processFile(filepath, filename, provider, box, version):
     
         sha1.update(f.read())
 
-        url = "http://" + app.config['HOST_VAR'] + "/boxes/"  + box + "/" + version + "/" + provider + "/" +  filename
+        url = app.config['HOST_VAR'] + "/boxes/"  + box + "/" + version + "/" + provider + "/" +  filename
 
         providerDetails = {}
         providerDetails["name"] = provider
